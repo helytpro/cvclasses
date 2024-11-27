@@ -10,14 +10,29 @@
 
 namespace cvlib
 {
-void motion_segmentation::apply(cv::InputArray _image, cv::OutputArray _fgmask, double)
-{
-    // \todo implement your own algorithm:
-    //       * MinMax
-    //       * Mean
-    //       * 1G
-    //       * GMM
+	void motion_segmentation::apply(cv::InputArray _image, cv::OutputArray _fgmask, double weight)
+	{
+		// \todo implement your own algorithm:
+		//       * Mean
 
-    // \todo implement bg model updates
-}
+        //reading
+        cv::Mat image = _image.getMat();
+
+        //skip a first frame
+        if (bg_model_.empty()) 
+        {
+            image.copyTo(bg_model_);
+            _fgmask.assign(cv::Mat::zeros(image.size(), image.type()));
+        }
+        else
+        {
+            cv::Mat res;
+            cv::absdiff(image, bg_model_, res);
+            cv::threshold(res, res, 50, 128, cv::THRESH_BINARY);
+
+            _fgmask.assign(res);
+
+            bg_model_ = (1 - weight) * bg_model_ + weight * image;
+        }
+	}
 } // namespace cvlib
