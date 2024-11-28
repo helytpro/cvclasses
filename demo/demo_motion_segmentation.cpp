@@ -13,8 +13,8 @@ int demo_motion_segmentation(int argc, char* argv[])
     if (!cap.isOpened())
         return -1;
 
-    cvlib::motion_segmentation mseg; 
-    //auto mseg = cv::createBackgroundSubtractorMOG2(); 
+    // cvlib::motion_segmentation mseg; 
+    auto mseg = cv::createBackgroundSubtractorMOG2(); 
     const auto main_wnd = "orig";
     const auto demo_wnd = "demo";
 
@@ -33,9 +33,9 @@ int demo_motion_segmentation(int argc, char* argv[])
         cv::imshow(main_wnd, frame);
 
         //error: "setVarThreshold": is not an element of "cvslib::motion_segmentation".
-        //mseg->setVarThreshold(threshold); // \todo use TackbarCallback
-        mseg.apply(frame, frame_mseg, alpha);
-        //mseg->apply(frame, frame_mseg);
+        mseg->setVarThreshold(threshold); // \todo use TackbarCallback
+        // mseg.apply(frame, frame_mseg, alpha);
+        mseg->apply(frame, frame_mseg);
         if (!frame_mseg.empty())
             cv::imshow(demo_wnd, frame_mseg);
     }
