@@ -52,7 +52,7 @@ class corner_detector_fast : public cv::Feature2D
     static cv::Ptr<corner_detector_fast> create();
 
     /// \see Feature2d::detect
-    virtual void detect(cv::InputArray image, CV_OUT std::vector<cv::KeyPoint>& keypoints, cv::InputArray mask = cv::noArray()) override;
+    virtual void detect(cv::InputArray image, CV_OUT std::vector<cv::KeyPoint>& keypoints);
 
     /// \see Feature2d::compute
     virtual void compute(cv::InputArray image, std::vector<cv::KeyPoint>& keypoints, cv::OutputArray descriptors) override;
