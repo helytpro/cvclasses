@@ -5,7 +5,6 @@
  */
 
 #include "cvlib.hpp"
-
 #include <ctime>
 
 namespace cvlib
@@ -16,10 +15,58 @@ cv::Ptr<corner_detector_fast> corner_detector_fast::create()
     return cv::makePtr<corner_detector_fast>();
 }
 
-void corner_detector_fast::detect(cv::InputArray image, CV_OUT std::vector<cv::KeyPoint>& keypoints, cv::InputArray /*mask = cv::noArray()*/)
+void corner_detector_fast::detect(cv::InputArray image, CV_OUT std::vector<cv::KeyPoint>& keypoints)
 {
     keypoints.clear();
-    // \todo implement FAST with minimal LOCs(lines of code), but keep code readable.
+    cv::Mat img = image.getMat();
+    if (img.channels() > 1) cv::cvtColor(img, img, cv::COLOR_RGB2GRAY);
+
+    const int threshold = 30, t = 9;
+    std::vector<cv::Point> offsets = {cv::Point(0, 3),  cv::Point(1, 2),   cv::Point(2, 2),   cv::Point(3, 1),
+                                      cv::Point(3, 0),  cv::Point(3, -1),  cv::Point(2, -2),  cv::Point(1, -3),
+                                      cv::Point(0, -3), cv::Point(-1, -3), cv::Point(-2, -2), cv::Point(-3, -1),
+                                      cv::Point(-3, 0), cv::Point(-3, 1),  cv::Point(-2, 2),  cv::Point(-1, 3)};
+    for (int y = 3; y < img.rows - 3; y++) 
+    {
+        for (int x = 3; x < img.cols - 3; x++) 
+        {
+            int centerPixel = img.at<uchar>(y, x);
+            std::vector<int> binaryCircle(16, 0);
+            for (int i = 0; i < binaryCircle.size(); i++)
+            {
+                int areaPixel = img.at<uchar>(y + offsets[i].y, x + offsets[i].x);
+                if (areaPixel > centerPixel + threshold)
+                    binaryCircle[i] = 1;
+                else if (areaPixel < centerPixel - threshold)
+                    binaryCircle[i] = 2;
+            }
+            int count = 0;
+            int currentValue = binaryCircle[0];
+            for (int i = 0; i < (16 + t - 1); i++) 
+            {
+                if (currentValue == 0)
+                {
+                    count = 0;
+                    currentValue = binaryCircle[(i + 1) % 16];
+                    continue;
+                }
+                if (binaryCircle[i % 16] == currentValue)
+                {
+                    count++;
+                    if (count >= t)
+                    {
+                        keypoints.emplace_back(cv::KeyPoint(cv::Point2f(x, y), 7));
+                        break;
+                    }
+                }
+                else
+                {
+                    currentValue = binaryCircle[i % 16];
+                    count = 1;
+                }
+            }
+        }
+    }
 }
 
 void corner_detector_fast::compute(cv::InputArray, std::vector<cv::KeyPoint>& keypoints, cv::OutputArray descriptors)
@@ -42,8 +89,12 @@ void corner_detector_fast::compute(cv::InputArray, std::vector<cv::KeyPoint>& ke
     }
 }
 
-void corner_detector_fast::detectAndCompute(cv::InputArray, cv::InputArray, std::vector<cv::KeyPoint>&, cv::OutputArray descriptors, bool /*= false*/)
+void corner_detector_fast::detectAndCompute(cv::InputArray img, 
+                                            cv::InputArray mask, std::vector<cv::KeyPoint>& keypoints,
+                                            cv::OutputArray descriptors,
+                                            bool useKeyPoints)
 {
-    // \todo implement me
+    if (!useKeyPoints) detect(img, keypoints);
+    compute(img, keypoints, descriptors);
 }
 } // namespace cvlib
