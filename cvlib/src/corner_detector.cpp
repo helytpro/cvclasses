@@ -19,27 +19,6 @@ cv::Ptr<corner_detector_fast> corner_detector_fast::create()
     return cv::makePtr<corner_detector_fast>();
 }
 
-cv::Point generate_point(int sigma)
-{
-    // std::default_random_engine generator;
-    std::random_device rd{};
-    std::mt19937 generator{rd()};
-
-    std::normal_distribution<float> distribution_x(0, sigma);
-    int x = std::round(distribution_x(generator));
-
-    std::normal_distribution<float> distribution_y(x, sigma);
-    int y = std::round(distribution_y(generator));
-
-    return {std::clamp(x, -sigma, sigma), std::clamp(y, -sigma, sigma)};
-}
-
-void make_point_pairs(std::vector<std::pair<cv::Point, cv::Point>>& pairs, const int desc_length, const int neighbourhood_size)
-{
-    pairs.clear();
-    for (int i = 0; i < desc_length; i++) pairs.push_back(std::make_pair(generate_point(neighbourhood_size / 2),
-                                                                         generate_point(neighbourhood_size / 2)));
-}
 
 void corner_detector_fast::detect(cv::InputArray image, CV_OUT std::vector<cv::KeyPoint>& keypoints)
 {
@@ -96,19 +75,33 @@ void corner_detector_fast::detect(cv::InputArray image, CV_OUT std::vector<cv::K
 
 void corner_detector_fast::compute(cv::InputArray image, std::vector<cv::KeyPoint>& keypoints, cv::OutputArray descriptors)
 {
-    const int desc_length = 2;
-
     cv::Mat img;
     image.getMat().copyTo(img);
     if (img.channels() > 1) cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
 
-    std::vector<std::pair<cv::Point, cv::Point>> pairs;
-    const int neighbourhood_size = 25;
-    descriptors.create(static_cast<int>(keypoints.size()), desc_length, CV_8U); //  CV_8U
+    const auto neighbourhood_size = 25;
+    const auto neighbourhood_halfsize = neighbourhood_size / 2 + 1;
+    const auto desc_length = 32;
+
+    descriptors.create(static_cast<int>(keypoints.size()), desc_length, CV_8U);
     auto desc_mat = descriptors.getMat();
     desc_mat.setTo(0);
 
-    make_point_pairs(pairs, desc_length, neighbourhood_size);
+    auto random_pairs = [](auto size, auto desc_length) {
+        const auto halfsize = size / 2;
+        std::mt19937 randgen;
+        std::normal_distribution<double> norm(0, size / 2);
+
+        auto randint = [&randgen, &norm](auto left, auto right) { return std::clamp(static_cast<int>(std::round(norm(randgen))), left, right); };
+
+        std::vector<std::pair<cv::Point, cv::Point>> pairs;
+        for (int i = 0; i < desc_length; i++)
+            pairs.push_back(std::make_pair(cv::Point(randint(-halfsize, halfsize), randint(-halfsize, halfsize)),
+                                           cv::Point(randint(-halfsize, halfsize), randint(-halfsize, halfsize))));
+
+        return pairs;
+    };
+
     auto test = [&img](cv::Point kp, std::pair<cv::Point, cv::Point> p) { return img.at<uint8_t>(kp + p.first) < img.at<uint8_t>(kp + p.second); };
     auto ptr = reinterpret_cast<uint8_t*>(desc_mat.ptr());
     for (const auto& kp : keypoints)
@@ -116,6 +109,9 @@ void corner_detector_fast::compute(cv::InputArray image, std::vector<cv::KeyPoin
         for (int i = 0; i < desc_length; ++i)
         {
             uint8_t descriptor = 0;
+            if (this->pairs.empty())
+                this->pairs = random_pairs(neighbourhood_size, desc_length);
+
             for (auto j = 0; j < pairs.size(); ++j)
                 descriptor |= (test(kp.pt, pairs.at(j)) << (pairs.size() - 1 - j));
             *ptr = descriptor;
