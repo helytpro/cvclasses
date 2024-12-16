@@ -89,7 +89,7 @@ void corner_detector_fast::compute(cv::InputArray image, std::vector<cv::KeyPoin
 
     auto random_pairs = [](auto size, auto desc_length) {
         const auto halfsize = size / 2;
-        std::mt19937 randgen;
+        std::mt19937 randgen(42);
         std::normal_distribution<double> norm(0, size / 2);
 
         auto randint = [&randgen, &norm](auto left, auto right) { return std::clamp(static_cast<int>(std::round(norm(randgen))), left, right); };
