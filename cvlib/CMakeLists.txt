@@ -9,13 +9,13 @@ include_directories( ${OpenCV_INCLUDE_DIRS} include)
 
 # Library
 file(GLOB SRC src/*.cpp include/*.hpp)
-add_library(${PROJECT_NAME} ${SRC})
+add_library(${PROJECT_NAME} ${SRC} "src/image_stitcher.cpp")
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
 target_include_directories(${PROJECT_NAME} INTERFACE include)
 
 # Unit Tests
 file(GLOB TESTS tests/*.cpp)
-add_executable(${PROJECT_NAME}_tests ${TESTS})
+add_executable(${PROJECT_NAME}_tests ${TESTS} "src/image_stitcher.cpp")
 
 # Catch2
 if(NOT EXISTS ${PROJECT_SOURCE_DIR}/tests/catch2)
