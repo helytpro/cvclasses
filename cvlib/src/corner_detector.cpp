@@ -26,6 +26,7 @@ void corner_detector_fast::detect(cv::InputArray image, CV_OUT std::vector<cv::K
     cv::Mat img = image.getMat();
     if (img.channels() > 1)  cv::cvtColor(img, img, cv::COLOR_RGB2GRAY);
 
+
     const int threshold = 30, t = 9;
     std::vector<cv::Point> offsets = {cv::Point(0, 3),  cv::Point(1, 2),  cv::Point(2, 2),  cv::Point(3, 1),   cv::Point(3, 0),   cv::Point(3, -1),
                                       cv::Point(2, -2), cv::Point(1, -3), cv::Point(0, -3), cv::Point(-1, -3), cv::Point(-2, -2), cv::Point(-3, -1),
